@@ -298,7 +298,7 @@ video {
   grid-template-columns: 280px 1fr;
   gap: 40px;
   align-items: center;
-  margin-top: 30vh;
+  margin-top: 10vh;
 }
 .about img {
   width: 100%;

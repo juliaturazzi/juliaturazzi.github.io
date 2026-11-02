@@ -112,6 +112,14 @@ body {
 .j-dot { top: 50%; left: calc(var(--p) * 100%); transform: translate(-50%, -50%); }
 .j-readout { flex-basis: 100%; text-align: center; }
 
+/* Phones and tablets: a larger, easier to read bar */
+@media (max-width: 1199px) {
+  .journey { font-size: 14px; gap: 6px 12px; padding: 14px 16px 12px; }
+  .j-track { height: 3px; }
+  .j-dot { width: 13px; height: 13px; }
+  .j-readout { font-size: 15px; }
+}
+
 /* Wide screens: a vertical rail on the left */
 @media (min-width: 1200px) {
   .journey::after { display: none; }
@@ -151,10 +159,15 @@ section { margin-top: 40px; }
 
 /* ---------- Hero ---------- */
 
-.hero {
-  padding-top: 6vh;
-  text-align: center;
+.intro {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-block: 32px;
 }
+
+.hero { text-align: center; }
 
 .eyebrow {
   margin: 0 0 16px;
@@ -276,10 +289,11 @@ footer {
 
 @media (max-width: 680px) {
   body { font-size: 16px; }
-  .hero { padding-top: 80px; }
+  .intro { padding-block: 92px 28px; }   /* clear the tracker bar at the top */
   .about { grid-template-columns: 1fr; gap: 20px; text-align: center; }
-  /* Same gap above the bio as below it: footer margin + the last paragraph margin */
-  .about { margin-top: calc(12vh + 12px); }
+  /* The centered first screen already leaves space below the buttons; main.js
+     gives the footer the same gap below the bio. */
+  .about { margin-top: 0; }
   .about img { max-width: 260px; margin: 0 auto; }
 }
 

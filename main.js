@@ -46,6 +46,30 @@ const smoothstep = (a, b, x) => {
   update();
 })();
 
+// Phones: make the gap between the bio and the hashtags match the gap between the
+// video buttons and the bio. The first gap depends on the screen height, since the
+// first section is centered on the screen.
+(function equalGaps() {
+  const buttons = document.querySelector('.actions');
+  const bio = document.querySelector('.about h2');
+  const lastLine = document.querySelector('.about > div > p:last-of-type');
+  const footer = document.querySelector('footer');
+  const tags = footer.querySelector('.tags');
+  let width = 0;
+  function update() {
+    if (innerWidth === width) return;      // ignore address-bar height changes
+    width = innerWidth;
+    footer.style.marginTop = '';
+    if (innerWidth > 680) return;
+    const above = bio.getBoundingClientRect().top - buttons.getBoundingClientRect().bottom;
+    const below = tags.getBoundingClientRect().top - lastLine.getBoundingClientRect().bottom;
+    const margin = parseFloat(getComputedStyle(footer).marginTop);
+    footer.style.marginTop = `${Math.max(0, margin + above - below)}px`;
+  }
+  document.fonts.ready.then(update);
+  addEventListener('resize', update);
+})();
+
 // Show the video's file size next to the download button.
 (function size() {
   const link = document.querySelector('a[download][href$=".mp4"]');

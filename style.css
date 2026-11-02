@@ -204,7 +204,7 @@ main {
   z-index: 1;
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 16px 30vh;
+  padding: 0 16px 18vh;
 }
 
 section { margin-top: 40px; }
@@ -318,7 +318,7 @@ h2 {
 /* ---------- Footer ---------- */
 
 footer {
-  margin-top: 30vh;
+  margin-top: 12vh;
   text-align: center;
   font-size: 14px;
 }

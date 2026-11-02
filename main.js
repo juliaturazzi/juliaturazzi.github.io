@@ -27,7 +27,9 @@ const smoothstep = (a, b, x) => {
   function update() {
     queued = false;
     const max = root.scrollHeight - innerHeight;
+    // Browsers can stop a pixel short of the bottom; count that as arrived.
     progress = max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
+    if (max - scrollY < 2) progress = 1;
     root.style.setProperty('--p', progress.toFixed(4));
     root.style.setProperty('--mix', smoothstep(.1, .85, progress).toFixed(4));
 

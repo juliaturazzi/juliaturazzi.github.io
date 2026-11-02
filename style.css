@@ -6,11 +6,16 @@
   --muted: #a9b3ad;
   --ochre: #c9a24a;
   --aurora: #6fd3a8;
-  --warm: #e8956b;
+  --warm: #f0a35e;
   --cold: #9fd0e6;
   --line: rgba(236, 230, 217, .14);
   --serif: "Fraunces", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
+
+  /* Set by main.js from the scroll position: --p goes 0 → 1 linearly,
+     --mix is the eased version used for the Rio → Arctic crossfade. */
+  --p: 0;
+  --mix: 0;
 }
 
 * { box-sizing: border-box; }
@@ -20,14 +25,14 @@ html { background: var(--night); }
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(to bottom, var(--night) 0%, var(--forest) 70%, var(--night) 100%);
+  background: var(--night);
   color: var(--snow);
   font: 400 17px/1.6 var(--sans);
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* ---------- Background ---------- */
+/* ---------- Background journey ---------- */
 
 .sky {
   position: fixed;
@@ -35,6 +40,45 @@ body {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
+}
+
+.layer { position: absolute; inset: 0; }
+
+/* Rio at sunset */
+.rio {
+  opacity: calc(1 - var(--mix));
+  background: linear-gradient(to bottom,
+    #121a38 0%, #2a2552 38%, #7d3d68 64%, #d66f5a 84%, #f3ad62 100%);
+}
+
+.sun {
+  position: absolute;
+  left: 84%;
+  bottom: 20vh;
+  width: 130px;
+  height: 130px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff1c4 0%, #ffc879 45%, #f59a52 70%);
+  box-shadow: 0 0 120px 40px rgba(245, 154, 82, .45);
+  transform: translateY(calc(var(--p) * 45vh));
+  opacity: calc(1 - var(--p) * 1.6);
+}
+
+.skyline {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30vh;
+  fill: #1a1430;
+  transform: translateY(calc(var(--p) * 12vh));
+}
+.skyline .bay { fill: #2b1f42; }
+
+/* Arctic night */
+.arctic {
+  opacity: var(--mix);
+  background: linear-gradient(to bottom, var(--night) 0%, var(--forest) 70%, var(--night) 100%);
 }
 
 .aurora {
@@ -55,17 +99,103 @@ body {
   to   { transform: translate3d(8vw, 4vh, 0) rotate(5deg) scaleY(1.15); }
 }
 
-#snow { position: absolute; inset: 0; width: 100%; height: 100%; }
-
 .mountains {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 28vh;
+  transform: translateY(calc((1 - var(--p)) * 10vh));
 }
 .mountains .far  { fill: #10201f; }
 .mountains .near { fill: #0a1213; }
+
+#snow { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+/* ---------- Journey tracker ---------- */
+
+.journey {
+  position: fixed;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  color: var(--snow);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .04em;
+}
+
+.j-end { opacity: .75; white-space: nowrap; }
+
+.j-track {
+  position: relative;
+  background: var(--line);
+  border-radius: 2px;
+}
+.j-fill {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(var(--track-dir, to right), var(--warm), var(--cold));
+  border-radius: inherit;
+}
+.j-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--cold) calc(var(--p) * 100%), var(--warm));
+  box-shadow: 0 0 12px color-mix(in oklab, var(--cold) calc(var(--p) * 100%), var(--warm));
+}
+
+.j-readout {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+#j-temp { color: color-mix(in oklab, var(--cold) calc(var(--p) * 100%), var(--warm)); }
+
+/* Phones and tablets: a bar across the top */
+.journey {
+  top: 0;
+  left: 0;
+  right: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  padding: 10px 16px 8px;
+  background: rgba(11, 20, 22, .45);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.j-track { flex: 1; height: 2px; max-width: 520px; }
+.j-fill { transform-origin: left; transform: scaleX(var(--p)); }
+.j-dot { top: 50%; left: calc(var(--p) * 100%); transform: translate(-50%, -50%); }
+.j-readout { flex-basis: 100%; text-align: center; }
+
+/* Wide screens: a vertical rail on the left */
+@media (min-width: 1200px) {
+  .journey {
+    top: 50%;
+    left: 32px;
+    right: auto;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0;
+    background: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border: 0;
+    transform: translateY(-50%);
+  }
+  .j-track { flex: none; width: 2px; height: 40vh; margin-left: 4px; --track-dir: to bottom; }
+  .j-fill { transform-origin: top; transform: scaleY(var(--p)); }
+  .j-dot { left: 50%; top: calc(var(--p) * 100%); }
+  .j-readout { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+  .j-readout .sep { display: none; }
+}
 
 /* ---------- Layout ---------- */
 
@@ -74,20 +204,20 @@ main {
   z-index: 1;
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 16px 18vh;
+  padding: 0 16px 30vh;
 }
 
-section { margin-top: 64px; }
+section { margin-top: 40px; }
 
 /* ---------- Hero ---------- */
 
 .hero {
-  padding-top: 18vh;
+  padding-top: 13vh;
   text-align: center;
 }
 
 .eyebrow {
-  margin: 0 0 20px;
+  margin: 0 0 16px;
   color: var(--ochre);
   font-size: 13px;
   font-weight: 600;
@@ -97,62 +227,16 @@ section { margin-top: 64px; }
 
 h1 {
   margin: 0;
-  font: 600 clamp(44px, 9vw, 92px)/1.02 var(--serif);
+  font: 600 clamp(34px, 8.4vw, 84px)/1.05 var(--serif);
   letter-spacing: -.02em;
+  white-space: nowrap;
 }
 
 .hook {
-  max-width: 34ch;
-  margin: 24px auto 0;
+  max-width: 36ch;
+  margin: 16px auto 0;
   color: var(--muted);
-  font-size: clamp(18px, 2.4vw, 21px);
-}
-
-/* ---------- Route ---------- */
-
-.route { max-width: 640px; margin-left: auto; margin-right: auto; }
-
-.route-ends {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-}
-.end { display: flex; flex-direction: column; }
-.end.right { text-align: right; }
-.place { font: 600 18px var(--serif); }
-.meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
-.warm { color: var(--warm); }
-.cold { color: var(--cold); }
-
-.route-line {
-  display: block;
-  width: 100%;
-  height: 90px;
-  margin-top: 8px;
-  overflow: visible;
-}
-.route-line path {
-  fill: none;
-  stroke: var(--snow);
-  stroke-width: 1.5;
-  stroke-dasharray: 2 7;
-  stroke-linecap: round;
-  vector-effect: non-scaling-stroke;
-  opacity: .7;
-}
-.dot { stroke: none; }
-.warm-dot { fill: var(--warm); }
-.cold-dot { fill: var(--cold); }
-
-.distance {
-  margin: 12px 0 0;
-  text-align: center;
-  color: var(--muted);
-}
-#km {
-  color: var(--snow);
-  font: 600 22px var(--serif);
-  font-variant-numeric: tabular-nums;
+  font-size: clamp(17px, 2.2vw, 20px);
 }
 
 /* ---------- Video ---------- */
@@ -201,11 +285,11 @@ video {
 .btn .size { font-weight: 400; opacity: .7; }
 
 .btn.ghost {
-  background: transparent;
+  background: rgba(11, 20, 22, .25);
   color: var(--snow);
-  box-shadow: inset 0 0 0 1px var(--line);
+  box-shadow: inset 0 0 0 1px rgba(236, 230, 217, .25);
 }
-.btn.ghost:hover { background: rgba(236, 230, 217, .06); }
+.btn.ghost:hover { background: rgba(236, 230, 217, .08); }
 
 /* ---------- About ---------- */
 
@@ -214,7 +298,7 @@ video {
   grid-template-columns: 280px 1fr;
   gap: 40px;
   align-items: center;
-  margin-top: 96px;
+  margin-top: 30vh;
 }
 .about img {
   width: 100%;
@@ -229,11 +313,12 @@ h2 {
   font: 600 34px/1.15 var(--serif);
 }
 .about p { margin: 0 0 12px; color: var(--muted); }
+.photo-dl { margin-top: 8px; }
 
 /* ---------- Footer ---------- */
 
 footer {
-  margin-top: 96px;
+  margin-top: 30vh;
   text-align: center;
   font-size: 14px;
 }
@@ -244,14 +329,13 @@ footer {
 
 @media (max-width: 680px) {
   body { font-size: 16px; }
-  .hero { padding-top: 12vh; }
+  .sun { left: 62%; bottom: 13vh; width: 84px; height: 84px; box-shadow: 0 0 80px 24px rgba(245, 154, 82, .4); }
+  .skyline { height: 22vh; }
+  .hero { padding-top: 96px; }
   .about { grid-template-columns: 1fr; gap: 20px; text-align: center; }
   .about img { max-width: 260px; margin: 0 auto; }
-  .place { font-size: 16px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .aurora { animation: none; }
 }
-
-.photo-dl { margin-top: 8px; }

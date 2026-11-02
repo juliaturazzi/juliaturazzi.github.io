@@ -278,6 +278,8 @@ footer {
   body { font-size: 16px; }
   .hero { padding-top: 80px; }
   .about { grid-template-columns: 1fr; gap: 20px; text-align: center; }
+  /* Same gap above the bio as below it: footer margin + the last paragraph margin */
+  .about { margin-top: calc(12vh + 12px); }
   .about img { max-width: 260px; margin: 0 auto; }
 }
 

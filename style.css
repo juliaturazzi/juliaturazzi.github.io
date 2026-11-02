@@ -10,6 +10,7 @@
   --line: rgba(236, 230, 217, .14);
   --serif: "Fraunces", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
+  --note: "Instrument Serif", Georgia, serif;
 
   /* Set by main.js from the scroll position, 0 at the top → 1 at the bottom. */
   --p: 0;
@@ -132,7 +133,7 @@ main {
   z-index: 1;
   max-width: 960px;
   margin: 0 auto;
-  padding: 0 16px 18vh;
+  padding: 0 16px 6vh;
 }
 
 section { margin-top: 40px; }
@@ -226,7 +227,7 @@ video {
   grid-template-columns: 280px 1fr;
   gap: 40px;
   align-items: center;
-  margin-top: 10vh;
+  margin-top: 20vh;
 }
 .about img {
   width: 100%;
@@ -238,7 +239,8 @@ video {
 }
 h2 {
   margin: 0 0 12px;
-  font: 600 34px/1.15 var(--serif);
+  font: 400 46px/1.05 var(--note);
+  letter-spacing: -.01em;
 }
 .about p { margin: 0 0 12px; color: var(--muted); }
 .photo-dl { margin-top: 8px; }

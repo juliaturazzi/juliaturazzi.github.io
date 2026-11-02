@@ -10,7 +10,7 @@
   --line: rgba(236, 230, 217, .14);
   --serif: "Fraunces", Georgia, serif;
   --sans: "Inter", system-ui, sans-serif;
-  --note: "Instrument Serif", Georgia, serif;
+  --note: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", system-ui, sans-serif;
 
   /* Set by main.js from the scroll position, 0 at the top → 1 at the bottom. */
   --p: 0;
@@ -239,8 +239,8 @@ video {
 }
 h2 {
   margin: 0 0 12px;
-  font: 400 46px/1.05 var(--note);
-  letter-spacing: -.01em;
+  font: 600 40px/1.1 var(--note);
+  letter-spacing: -.025em;
 }
 .about p { margin: 0 0 12px; color: var(--muted); }
 .photo-dl { margin-top: 8px; }

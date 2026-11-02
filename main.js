@@ -158,14 +158,20 @@ const smoothstep = (a, b, x) => {
     const gw = glow.width, gh = glow.height;
     gctx.clearRect(0, 0, gw, gh);
     gctx.globalCompositeOperation = 'lighter';
-    for (let c = 0; c < 2; c++) {
-      for (let x = 0; x < gw; x++) {
-        const base = gh * (.30 + c * .1) + (noise(x * .018 + c * 40 + t * .03) - .5) * gh * .3;
-        const height = gh * (.18 + .3 * noise(x * .05 + c * 9 + t * .08));
-        const streak = noise(x * .45 + c * 3 + t * .5);
-        gctx.globalAlpha = strength * (.15 + .85 * streak * streak) * (c ? .5 : .8);
-        gctx.drawImage(ray, x, base - height, 1.4, height);
-      }
+    // One condensed ribbon sweeping down across the sky, fading out at both ends,
+    // with a faint haze around it instead of hard vertical stripes.
+    for (let x = 0; x < gw; x++) {
+      const u = x / gw;
+      const ends = smoothstep(.05, .3, u) * smoothstep(.98, .72, u);
+      if (ends <= 0) continue;
+      const base = gh * (.16 + .26 * u + .05 * Math.sin(u * 4.4 + t * .06))
+                 + (noise(x * .012 + t * .02) - .5) * gh * .05;
+      const height = gh * (.06 + .05 * noise(x * .03 + t * .06));
+      const texture = .78 + .22 * noise(x * .12 + t * .25);
+      gctx.globalAlpha = strength * ends * .2;
+      gctx.drawImage(ray, x, base - height * 2.4, 1.4, height * 2.6);
+      gctx.globalAlpha = strength * ends * texture * .95;
+      gctx.drawImage(ray, x, base - height, 1.4, height);
     }
     gctx.globalAlpha = 1;
     gctx.globalCompositeOperation = 'source-over';

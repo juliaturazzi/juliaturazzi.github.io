@@ -162,16 +162,17 @@ const smoothstep = (a, b, x) => {
     // Two translucent ribbons high in the sky (a faint one behind, the main one in front),
     // each a curtain of fine rays that fades out at both ends, inside a wide soft glow.
     const dim = w < 700 ? .8 : 1;                    // phones: text spans the full width
+    const lift = w < 700 ? .15 : 0;                  // phones: keep it high, clear of the bio text
     const RIBBONS = [
-      { top: .07, slope: .12, tall: .32, alpha: .42, seed: 70, from: .0,  to: .85 },
-      { top: .12, slope: .16, tall: .24, alpha: 1,   seed: 0,  from: .12, to: 1 },
+      { top: .17, slope: .1,  tall: .32, alpha: .42, seed: 70, from: .0,  to: .85 },
+      { top: .24, slope: .12, tall: .24, alpha: 1,   seed: 0,  from: .12, to: 1 },
     ];
     for (const r of RIBBONS) {
       for (let x = 0; x < gw; x++) {
         const u = x / gw;
         const ends = smoothstep(r.from, r.from + .28, u) * smoothstep(r.to, r.to - .3, u);
         if (ends <= 0) continue;
-        const base = gh * (r.top + r.slope * u + .035 * Math.sin(u * 5 + t * .05 + r.seed))
+        const base = gh * (r.top - lift + r.slope * u + .035 * Math.sin(u * 5 + t * .05 + r.seed))
                    + (noise(x * .01 + t * .02 + r.seed) - .5) * gh * .04;
         const height = gh * r.tall * (.7 + .5 * noise(x * .025 + t * .05 + r.seed));
         // Fine rays: mostly even, with the occasional brighter streak drifting along.

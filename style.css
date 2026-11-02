@@ -18,6 +18,8 @@
 
 * { box-sizing: border-box; }
 
+[hidden] { display: none !important; }
+
 html { background: var(--night); }
 
 body {
@@ -95,7 +97,15 @@ body {
   background: rgba(11, 20, 22, .45);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+}
+/* Soft fade under the phone tracker bar instead of a hard line */
+.journey::after {
+  content: "";
+  position: absolute;
+  inset: 100% 0 auto;
+  height: 14px;
+  background: linear-gradient(rgba(11, 20, 22, .45), rgba(11, 20, 22, 0));
+  pointer-events: none;
 }
 .j-track { flex: 1; height: 2px; max-width: 520px; }
 .j-fill { transform-origin: left; transform: scaleX(var(--p)); }
@@ -104,6 +114,7 @@ body {
 
 /* Wide screens: a vertical rail on the left */
 @media (min-width: 1200px) {
+  .journey::after { display: none; }
   .journey {
     top: 50%;
     left: 32px;
@@ -201,7 +212,6 @@ video {
   text-decoration: none;
   transition: transform .15s ease, background .15s ease;
 }
-.btn:hover { transform: translateY(-1px); background: #d8b25a; }
 .btn:focus-visible { outline: 2px solid var(--snow); outline-offset: 3px; }
 .btn svg {
   width: 15px;
@@ -219,7 +229,12 @@ video {
   color: var(--snow);
   box-shadow: inset 0 0 0 1px rgba(236, 230, 217, .25);
 }
-.btn.ghost:hover { background: rgba(236, 230, 217, .08); }
+/* Hover only on devices that really hover, so a tap on iOS can't leave it stuck */
+@media (hover: hover) {
+  .btn:hover { transform: translateY(-1px); background: #d8b25a; }
+  .btn.ghost:hover { background: rgba(236, 230, 217, .08); }
+}
+.btn:active { transform: scale(.97); transition-duration: .1s; }
 
 /* ---------- About ---------- */
 

@@ -215,7 +215,9 @@ const smoothstep = (a, b, x) => {
 
   // ----- one frame -----
   function frame(now) {
-    const t = reducedMotion ? 0 : now / 1000;
+    // Time stands still while the video plays or for reduced motion.
+    if (running) clock = now / 1000;
+    const t = clock;
     const p = progress;
     const horizon = h * .8;
 
@@ -347,7 +349,7 @@ const smoothstep = (a, b, x) => {
 
     // Snow at three depths: near flakes are bigger and faster
     for (const f of flakes) {
-      if (!reducedMotion) {
+      if (running) {
         f.y += f.v;
         f.drift += .01;
         f.x += Math.sin(f.drift) * (.2 + f.depth * .4);
@@ -368,11 +370,28 @@ const smoothstep = (a, b, x) => {
     ctx.fillStyle = v;
     ctx.fillRect(0, 0, w, h);
 
-    if (!reducedMotion) requestAnimationFrame(frame);
+    if (running) requestAnimationFrame(frame);
   }
 
+  // Hold the scene still while the video plays: the film is the point of the page,
+  // and a phone needs the processing power for playback.
+  const film = document.getElementById('film');
+  let running = !reducedMotion;
+  let clock = 0;
+  const still = () => { running = false; };
+  const resume = () => {
+    if (reducedMotion || running) return;
+    running = true;
+    requestAnimationFrame(frame);
+  };
+  film.addEventListener('play', still);
+  film.addEventListener('pause', resume);
+  film.addEventListener('ended', resume);
+
   resize();
-  addEventListener('resize', () => { resize(); if (reducedMotion) frame(0); });
-  if (reducedMotion) addEventListener('scroll', () => requestAnimationFrame(frame), { passive: true });
+  // When the scene is still, scrolling and resizing redraw a single frame.
+  const redraw = () => { if (!running) requestAnimationFrame(frame); };
+  addEventListener('resize', () => { resize(); redraw(); });
+  addEventListener('scroll', redraw, { passive: true });
   requestAnimationFrame(frame);
 })();

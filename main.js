@@ -94,9 +94,26 @@ const smoothstep = (a, b, x) => {
   // ----- Rio: Corcovado with Christ the Redeemer, Morro da Urca, Sugarloaf (1440 × 320 box) -----
   const RIO_FAR = new Path2D('M0 236 C70 214 120 168 170 172 C205 140 232 132 262 160 C300 186 360 196 430 204 C520 214 600 200 690 210 C820 222 980 214 1100 222 C1240 230 1360 224 1440 228 L1440 320 L0 320 Z');
   const RIO_NEAR = new Path2D('M0 262 C110 255 210 205 290 130 C312 98 330 74 345 72 C360 74 372 96 392 128 C440 200 530 240 640 252 C760 262 840 246 900 218 C935 182 985 172 1025 206 C1048 160 1078 94 1130 86 C1182 82 1222 150 1242 228 C1290 254 1365 262 1440 262 L1440 320 L0 320 Z');
-  RIO_NEAR.rect(343, 52, 4, 22);
-  RIO_NEAR.rect(333, 58, 24, 3);
   const BAY_Y = 282;
+  const PEAK = [345, 74];                     // top of Corcovado, where the statue stands
+
+  // Christ the Redeemer in the real proportions: 8 m pedestal, 30 m statue, 28 m arm span.
+  // 100 units tall, origin at the foot of the pedestal. Broad robe, sleeves hanging from the arms.
+  const CHRIST = new Path2D(
+    'M-9 0 L9 0 L9 -17 L10.5 -17 L10.5 -20 L9.5 -20 ' +
+    'C8.5 -35 7.5 -50 8.5 -64 C14 -68 26 -74 35 -77 ' +
+    'L37.5 -77.5 L38 -80 L37.5 -82.5 L30 -83.5 L12 -84.5 ' +
+    'C10 -85.5 6 -87 3.5 -88 L3 -90 L-3 -90 L-3.5 -88 ' +
+    'C-6 -87 -10 -85.5 -12 -84.5 L-30 -83.5 L-37.5 -82.5 L-38 -80 L-37.5 -77.5 ' +
+    'L-35 -77 C-26 -74 -14 -68 -8.5 -64 C-7.5 -50 -8.5 -35 -9.5 -20 ' +
+    'L-10.5 -20 L-10.5 -17 L-9 -17 Z ' +
+    'M5 -95 A5 5 0 1 0 -5 -95 A5 5 0 1 0 5 -95 Z');
+
+  // City lights along the shore, between the hills and the bay.
+  const LIGHTS = Array.from({ length: 90 }, () => ({
+    x: Math.random() * 1440, y: BAY_Y - 1 - Math.random() * 7,
+    r: Math.random() * .9 + .5, phase: Math.random() * 6.3,
+  }));
 
   // ----- Arctic ridges: far to near, lighter and hazier with distance -----
   // haze: how much of the horizon colour each layer takes on (distance = paler).
@@ -243,8 +260,9 @@ const smoothstep = (a, b, x) => {
     // Rio sinks out of view as the journey heads north
     const rioDrop = smoothstep(0, .55, p) * h * .55;
     if (rioDrop < h * .5) {
-      const scale = Math.max(w / 1440, (h * .32) / 320);
-      const ox = w - 1440 * scale;              // anchor right, so phones keep Sugarloaf in view
+      // Phones frame the stretch from Corcovado to Sugarloaf; wider screens show the whole bay.
+      const scale = narrow ? w / 1060 : Math.max(w / 1440, (h * .32) / 320);
+      const ox = narrow ? -230 * scale : w - 1440 * scale;
       const oy = h - 320 * scale + rioDrop;
       ctx.save();
       ctx.translate(ox, oy);
@@ -254,12 +272,23 @@ const smoothstep = (a, b, x) => {
       ctx.fill(RIO_FAR);
       ctx.fillStyle = '#1a1430';
       ctx.fill(RIO_NEAR);
+      // The statue: true to scale it would be a speck, so it is drawn at least 30px tall.
+      const k = Math.max(.32, .3 / scale);
+      ctx.save();
+      ctx.translate(PEAK[0], PEAK[1]);
+      ctx.scale(k, k);
+      ctx.fill(CHRIST);
+      ctx.restore();
       // Guanabara Bay with the sun's reflection
       const bay = ctx.createLinearGradient(0, BAY_Y, 0, 320);
       bay.addColorStop(0, '#3a2a55');
       bay.addColorStop(1, '#140f26');
       ctx.fillStyle = bay;
       ctx.fillRect(0, BAY_Y, 1440, 320 - BAY_Y);
+      for (const l of LIGHTS) {
+        ctx.fillStyle = `rgba(255,214,150,${.55 + .35 * Math.sin(t * 2 + l.phase)})`;
+        ctx.fillRect(l.x, l.y, l.r, l.r);
+      }
       if (sunUp > 0) {
         const sx = (sunX - ox) / scale;
         for (let i = 0; i < 12; i++) {

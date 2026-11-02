@@ -99,11 +99,13 @@ const smoothstep = (a, b, x) => {
   const BAY_Y = 282;
 
   // ----- Arctic ridges: far to near, lighter and hazier with distance -----
+  // haze: how much of the horizon colour each layer takes on (distance = paler).
   const RIDGES = [
-    { base: .66, amp: .24, freq: .0035, seed: 11, top: '#4d6874', bottom: '#14262d' },
-    { base: .78, amp: .18, freq: .0055, seed: 47, top: '#2b4049', bottom: '#0b181d' },
-    { base: .90, amp: .11, freq: .009,  seed: 83, top: '#14232a', bottom: '#050b0e' },
-  ].map(r => ({ ...r, top: hex(r.top), bottom: hex(r.bottom) }));
+    { base: .76, amp: .28, freq: .0035, seed: 11, haze: .5 },
+    { base: .86, amp: .24, freq: .0055, seed: 47, haze: .22 },
+    { base: .97, amp: .18, freq: .009,  seed: 83, haze: 0 },
+  ];
+  const RIDGE_DARK = hex('#08131a');
 
   function buildRidges() {
     const step = 6;
@@ -270,14 +272,15 @@ const smoothstep = (a, b, x) => {
       ctx.restore();
     }
 
-    // Arctic ridges rise from below
+    // Arctic ridges rise from below, overlapping; nearer layers are darker
     const rise = (1 - smoothstep(.35, .85, p)) * h * .6;
     if (rise < h * .55) {
       ridges.forEach((r, i) => {
-        const top = (r.base - r.amp) * h + rise;
-        const fill = ctx.createLinearGradient(0, top, 0, h + rise);
-        fill.addColorStop(0, rgb(r.top));
-        fill.addColorStop(.45, rgb(r.bottom));
+        const crest = (r.base - r.amp) * h + rise;
+        const colour = mix(RIDGE_DARK, sky[3], r.haze);
+        const fill = ctx.createLinearGradient(0, crest, 0, h + rise);
+        fill.addColorStop(0, rgb(colour));
+        fill.addColorStop(1, rgb(mix(colour, RIDGE_DARK, .6)));
         ctx.fillStyle = fill;
         ctx.beginPath();
         ctx.moveTo(r.pts[0][0], h);
@@ -285,14 +288,24 @@ const smoothstep = (a, b, x) => {
         ctx.lineTo(w + 10, h);
         ctx.closePath();
         ctx.fill();
-        // Low mist between the ridges
+
+        // Moonlight catching the snow along the peaks
+        ctx.strokeStyle = `rgba(200,225,235,${[.2, .07, 0][i]})`;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        r.pts.forEach(([x, y], k) => k ? ctx.lineTo(x, y + rise) : ctx.moveTo(x, y + rise));
+        ctx.stroke();
+
+        // Mist settling in the valleys, fading out above and below
         if (i < ridges.length - 1) {
-          const mistY = r.base * h + rise;
-          const mist = ctx.createLinearGradient(0, mistY - h * .06, 0, mistY + h * .02);
-          mist.addColorStop(0, 'rgba(120,170,175,0)');
-          mist.addColorStop(1, 'rgba(120,170,175,.07)');
+          const mid = (r.base - r.amp * .25) * h + rise;
+          const band = h * .07;
+          const mist = ctx.createLinearGradient(0, mid - band, 0, mid + band);
+          mist.addColorStop(0, 'rgba(130,175,185,0)');
+          mist.addColorStop(.5, 'rgba(130,175,185,.06)');
+          mist.addColorStop(1, 'rgba(130,175,185,0)');
           ctx.fillStyle = mist;
-          ctx.fillRect(0, mistY - h * .06, w, h * .08);
+          ctx.fillRect(0, mid - band, w, band * 2);
         }
       });
     }

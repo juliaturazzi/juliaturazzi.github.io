@@ -186,10 +186,10 @@ const smoothstep = (a, b, x) => {
     // Two translucent ribbons high in the sky (a faint one behind, the main one in front),
     // each a curtain of fine rays that fades out at both ends, inside a wide soft glow.
     const dim = w < 700 ? .8 : 1;                    // phones: text spans the full width
-    const lift = w < 700 ? .15 : 0;                  // phones: keep it high, clear of the bio text
+    const lift = w < 700 ? .2 : 0;                   // phones: keep it high, clear of the bio text
     const RIBBONS = [
-      { top: .17, slope: .1,  tall: .32, alpha: .42, seed: 70, from: .0,  to: .85 },
-      { top: .24, slope: .12, tall: .24, alpha: 1,   seed: 0,  from: .12, to: 1 },
+      { top: .22, slope: .1,  tall: .32, alpha: .42, seed: 70, from: .0,  to: .85 },
+      { top: .29, slope: .12, tall: .24, alpha: 1,   seed: 0,  from: .12, to: 1 },
     ];
     for (const r of RIBBONS) {
       for (let x = 0; x < gw; x++) {

@@ -152,7 +152,7 @@ section { margin-top: 40px; }
 /* ---------- Hero ---------- */
 
 .hero {
-  padding-top: 13vh;
+  padding-top: 6vh;
   text-align: center;
 }
 
@@ -259,6 +259,7 @@ h2 {
   letter-spacing: -.025em;
 }
 .about p { margin: 0 0 12px; color: var(--muted); }
+.about.text-only { grid-template-columns: minmax(0, 620px); justify-content: center; text-align: center; }
 .photo-dl { margin-top: 8px; }
 
 /* ---------- Footer ---------- */
@@ -275,7 +276,7 @@ footer {
 
 @media (max-width: 680px) {
   body { font-size: 16px; }
-  .hero { padding-top: 96px; }
+  .hero { padding-top: 80px; }
   .about { grid-template-columns: 1fr; gap: 20px; text-align: center; }
   .about img { max-width: 260px; margin: 0 auto; }
 }

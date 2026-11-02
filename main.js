@@ -145,11 +145,12 @@ const smoothstep = (a, b, x) => {
   (() => {
     const r = ray.getContext('2d');
     const g = r.createLinearGradient(0, 128, 0, 0);
-    g.addColorStop(0, 'rgba(110,255,180,0)');
-    g.addColorStop(.06, 'rgba(110,255,180,1)');
-    g.addColorStop(.35, 'rgba(70,220,170,.55)');
-    g.addColorStop(.75, 'rgba(140,110,255,.25)');
-    g.addColorStop(1, 'rgba(140,110,255,0)');
+    // Soft base, bright green just above it, then teal fading into a faint violet top.
+    g.addColorStop(0, 'rgba(120,255,190,0)');
+    g.addColorStop(.12, 'rgba(120,255,190,.85)');
+    g.addColorStop(.3, 'rgba(80,225,180,.5)');
+    g.addColorStop(.6, 'rgba(120,130,240,.16)');
+    g.addColorStop(1, 'rgba(150,110,255,0)');
     r.fillStyle = g;
     r.fillRect(0, 0, 1, 128);
   })();
@@ -158,20 +159,30 @@ const smoothstep = (a, b, x) => {
     const gw = glow.width, gh = glow.height;
     gctx.clearRect(0, 0, gw, gh);
     gctx.globalCompositeOperation = 'lighter';
-    // One condensed ribbon sweeping down across the sky, fading out at both ends,
-    // with a faint haze around it instead of hard vertical stripes.
-    for (let x = 0; x < gw; x++) {
-      const u = x / gw;
-      const ends = smoothstep(.05, .3, u) * smoothstep(.98, .72, u);
-      if (ends <= 0) continue;
-      const base = gh * (.16 + .26 * u + .05 * Math.sin(u * 4.4 + t * .06))
-                 + (noise(x * .012 + t * .02) - .5) * gh * .05;
-      const height = gh * (.06 + .05 * noise(x * .03 + t * .06));
-      const texture = .78 + .22 * noise(x * .12 + t * .25);
-      gctx.globalAlpha = strength * ends * .2;
-      gctx.drawImage(ray, x, base - height * 2.4, 1.4, height * 2.6);
-      gctx.globalAlpha = strength * ends * texture * .95;
-      gctx.drawImage(ray, x, base - height, 1.4, height);
+    // Two translucent ribbons high in the sky (a faint one behind, the main one in front),
+    // each a curtain of fine rays that fades out at both ends, inside a wide soft glow.
+    const dim = w < 700 ? .6 : 1;                    // phones: text spans the full width
+    const RIBBONS = [
+      { top: .07, slope: .12, tall: .26, alpha: .22, seed: 70, from: .0,  to: .85 },
+      { top: .12, slope: .16, tall: .18, alpha: .55, seed: 0,  from: .12, to: 1 },
+    ];
+    for (const r of RIBBONS) {
+      for (let x = 0; x < gw; x++) {
+        const u = x / gw;
+        const ends = smoothstep(r.from, r.from + .28, u) * smoothstep(r.to, r.to - .3, u);
+        if (ends <= 0) continue;
+        const base = gh * (r.top + r.slope * u + .035 * Math.sin(u * 5 + t * .05 + r.seed))
+                   + (noise(x * .01 + t * .02 + r.seed) - .5) * gh * .04;
+        const height = gh * r.tall * (.7 + .5 * noise(x * .025 + t * .05 + r.seed));
+        // Fine rays: mostly even, with the occasional brighter streak drifting along.
+        const ray1 = noise(x * .35 + t * .4 + r.seed);
+        const rays = .7 + .3 * ray1 * ray1 + .25 * Math.pow(noise(x * .08 - t * .15 + r.seed), 4);
+        const a = strength * dim * ends * r.alpha;
+        gctx.globalAlpha = a * .25;                  // wide glow
+        gctx.drawImage(ray, x, base - height * 1.8, 1.2, height * 2.3);
+        gctx.globalAlpha = a * rays;                 // the curtain itself
+        gctx.drawImage(ray, x, base - height, 1.2, height * 1.05);
+      }
     }
     gctx.globalAlpha = 1;
     gctx.globalCompositeOperation = 'source-over';
@@ -191,8 +202,8 @@ const smoothstep = (a, b, x) => {
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    glow.width = Math.ceil(w / 5);
-    glow.height = Math.ceil(h / 5);
+    glow.width = Math.ceil(w / 3);
+    glow.height = Math.ceil(h / 3);
     buildRidges();
     // Phones fire resize when the address bar hides; keep stars and snow unless the width changed.
     if (!widthChanged) return;

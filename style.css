@@ -191,9 +191,10 @@ video {
 .btn {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 20px;
+  gap: 8px;
+  padding: 8px 15px;
   border-radius: 999px;
+  font-size: 14px;
   background: var(--ochre);
   color: #1a1408;
   font-weight: 600;
@@ -203,8 +204,8 @@ video {
 .btn:hover { transform: translateY(-1px); background: #d8b25a; }
 .btn:focus-visible { outline: 2px solid var(--snow); outline-offset: 3px; }
 .btn svg {
-  width: 18px;
-  height: 18px;
+  width: 15px;
+  height: 15px;
   fill: none;
   stroke: currentColor;
   stroke-width: 2.2;

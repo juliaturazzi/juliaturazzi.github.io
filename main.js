@@ -1,7 +1,7 @@
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const root = document.documentElement;
 
-// Scroll progress 0 → 1, shared by the background, the tracker and the snow.
+// Scroll progress 0 → 1, shared by the background scene and the tracker.
 let progress = 0;
 const smoothstep = (a, b, x) => {
   const t = Math.min(Math.max((x - a) / (b - a), 0), 1);
@@ -31,7 +31,6 @@ const smoothstep = (a, b, x) => {
     progress = max > 0 ? Math.min(Math.max(scrollY / max, 0), 1) : 0;
     if (max - scrollY < 2) progress = 1;
     root.style.setProperty('--p', progress.toFixed(4));
-    root.style.setProperty('--mix', smoothstep(.1, .85, progress).toFixed(4));
 
     const lat = Math.round(lat1 + (lat2 - lat1) * progress);
     // Stays warm through the tropics, then drops fast on the way north.
@@ -58,57 +57,274 @@ const smoothstep = (a, b, x) => {
     .catch(() => {});
 })();
 
-// Snow: starts once the journey leaves Rio and thickens towards the Arctic.
-(function snow() {
-  const canvas = document.getElementById('snow');
+// Background scene, painted on one canvas every frame.
+// Top of the page: sunset over Guanabara Bay. Bottom: Arctic night with aurora and snow.
+(function scene() {
+  const canvas = document.getElementById('scene');
   const ctx = canvas.getContext('2d');
-  let w, h, flakes;
+  let w = 0, h = 0, ridges = [], stars = [], flakes = [];
 
+  // ----- helpers -----
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));
+  const rgb = (c, a = 1) => `rgba(${c.map(Math.round).join(',')},${a})`;
+  const mix = (a, b, t) => a.map((v, i) => lerp(v, b[i], t));
+
+  // Smooth 1D value noise.
+  const table = Array.from({ length: 512 }, () => Math.random());
+  const noise = x => {
+    const i = Math.floor(x), f = x - i, u = f * f * (3 - 2 * f);
+    return lerp(table[i & 511], table[(i + 1) & 511], u);
+  };
+
+  // ----- sky: colours from zenith to horizon at three points of the journey -----
+  const SKY = [
+    { at: 0,   stops: ['#18204a', '#47306c', '#b9587a', '#f4a25f'] },
+    { at: .45, stops: ['#0b1530', '#1b2a50', '#33476f', '#5d6e92'] },
+    { at: 1,   stops: ['#03080e', '#07131b', '#0c1f27', '#15303a'] },
+  ].map(k => ({ at: k.at, stops: k.stops.map(hex) }));
+
+  function skyAt(p) {
+    const i = p < SKY[1].at ? 0 : 1;
+    const a = SKY[i], b = SKY[i + 1];
+    const t = smoothstep(0, 1, (p - a.at) / (b.at - a.at));
+    return a.stops.map((c, k) => mix(c, b.stops[k], t));
+  }
+
+  // ----- Rio: Corcovado with Christ the Redeemer, Morro da Urca, Sugarloaf (1440 × 320 box) -----
+  const RIO_FAR = new Path2D('M0 236 C70 214 120 168 170 172 C205 140 232 132 262 160 C300 186 360 196 430 204 C520 214 600 200 690 210 C820 222 980 214 1100 222 C1240 230 1360 224 1440 228 L1440 320 L0 320 Z');
+  const RIO_NEAR = new Path2D('M0 262 C110 255 210 205 290 130 C312 98 330 74 345 72 C360 74 372 96 392 128 C440 200 530 240 640 252 C760 262 840 246 900 218 C935 182 985 172 1025 206 C1048 160 1078 94 1130 86 C1182 82 1222 150 1242 228 C1290 254 1365 262 1440 262 L1440 320 L0 320 Z');
+  RIO_NEAR.rect(343, 52, 4, 22);
+  RIO_NEAR.rect(333, 58, 24, 3);
+  const BAY_Y = 282;
+
+  // ----- Arctic ridges: far to near, lighter and hazier with distance -----
+  const RIDGES = [
+    { base: .66, amp: .24, freq: .0035, seed: 11, top: '#4d6874', bottom: '#14262d' },
+    { base: .78, amp: .18, freq: .0055, seed: 47, top: '#2b4049', bottom: '#0b181d' },
+    { base: .90, amp: .11, freq: .009,  seed: 83, top: '#14232a', bottom: '#050b0e' },
+  ].map(r => ({ ...r, top: hex(r.top), bottom: hex(r.bottom) }));
+
+  function buildRidges() {
+    const step = 6;
+    ridges = RIDGES.map(r => {
+      const pts = [];
+      for (let x = -step; x <= w + step; x += step) {
+        const n = noise(x * r.freq + r.seed) + noise(x * r.freq * 2.7 + r.seed) * .45 + noise(x * r.freq * 7 + r.seed) * .12;
+        const v = Math.pow(n / 1.57, 1.7);
+        pts.push([x, (r.base - r.amp * v) * h]);
+      }
+      return { ...r, pts };
+    });
+  }
+
+  // ----- aurora: drawn small and scaled up, which blurs it for free -----
+  const glow = document.createElement('canvas');
+  const gctx = glow.getContext('2d');
+  const ray = document.createElement('canvas');
+  ray.width = 1; ray.height = 128;
+  (() => {
+    const r = ray.getContext('2d');
+    const g = r.createLinearGradient(0, 128, 0, 0);
+    g.addColorStop(0, 'rgba(110,255,180,0)');
+    g.addColorStop(.06, 'rgba(110,255,180,1)');
+    g.addColorStop(.35, 'rgba(70,220,170,.55)');
+    g.addColorStop(.75, 'rgba(140,110,255,.25)');
+    g.addColorStop(1, 'rgba(140,110,255,0)');
+    r.fillStyle = g;
+    r.fillRect(0, 0, 1, 128);
+  })();
+
+  function drawAurora(t, strength) {
+    const gw = glow.width, gh = glow.height;
+    gctx.clearRect(0, 0, gw, gh);
+    gctx.globalCompositeOperation = 'lighter';
+    for (let c = 0; c < 2; c++) {
+      for (let x = 0; x < gw; x++) {
+        const base = gh * (.30 + c * .1) + (noise(x * .018 + c * 40 + t * .03) - .5) * gh * .3;
+        const height = gh * (.18 + .3 * noise(x * .05 + c * 9 + t * .08));
+        const streak = noise(x * .45 + c * 3 + t * .5);
+        gctx.globalAlpha = strength * (.15 + .85 * streak * streak) * (c ? .5 : .8);
+        gctx.drawImage(ray, x, base - height, 1.4, height);
+      }
+    }
+    gctx.globalAlpha = 1;
+    gctx.globalCompositeOperation = 'source-over';
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(glow, 0, 0, w, h);
+    ctx.restore();
+  }
+
+  // ----- setup -----
   function resize() {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const widthChanged = canvas.clientWidth !== w;
     w = canvas.clientWidth;
     h = canvas.clientHeight;
     canvas.width = w * dpr;
     canvas.height = h * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    const count = Math.round(Math.min(160, w * h / 8000));
-    flakes = Array.from({ length: count }, (_, i) => ({
-      x: Math.random() * w,
-      y: Math.random() * h,
-      r: Math.random() * 1.6 + .4,
-      v: Math.random() * .5 + .25,
-      drift: Math.random() * Math.PI * 2,
-      // Each flake appears at its own point in the journey, so the snow builds up gradually.
-      from: .25 + (i / count) * .6,
+    glow.width = Math.ceil(w / 5);
+    glow.height = Math.ceil(h / 5);
+    buildRidges();
+    // Phones fire resize when the address bar hides; keep stars and snow unless the width changed.
+    if (!widthChanged) return;
+    stars = Array.from({ length: Math.round(w * h / 5000) }, () => ({
+      x: Math.random(), y: Math.random() * .75, r: Math.random() * 1.1 + .2,
+      phase: Math.random() * 6.3, speed: Math.random() * 1.5 + .5,
     }));
+    const count = Math.round(Math.min(180, w * h / 7000));
+    flakes = Array.from({ length: count }, (_, i) => {
+      const depth = Math.random();   // 0 far, 1 near
+      return {
+        x: Math.random() * w, y: Math.random() * h, depth,
+        r: lerp(.5, 2.6, depth * depth), v: lerp(.25, 1.2, depth),
+        drift: Math.random() * 6.3,
+        // Each flake appears at its own point in the journey, so the snow builds up gradually.
+        from: .3 + (i / count) * .55,
+      };
+    });
   }
 
-  function draw() {
-    ctx.clearRect(0, 0, w, h);
+  // ----- one frame -----
+  function frame(now) {
+    const t = reducedMotion ? 0 : now / 1000;
+    const p = progress;
+    const horizon = h * .8;
+
+    // Sky
+    const sky = skyAt(p);
+    const g = ctx.createLinearGradient(0, 0, 0, horizon);
+    sky.forEach((c, i) => g.addColorStop(i / (sky.length - 1), rgb(c)));
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+
+    // Stars come out after sunset
+    const starLight = smoothstep(.12, .6, p);
+    if (starLight > 0) {
+      for (const s of stars) {
+        const a = starLight * (1 - s.y) * (.55 + .45 * Math.sin(t * s.speed + s.phase));
+        ctx.fillStyle = `rgba(236,240,245,${a})`;
+        ctx.fillRect(s.x * w, s.y * h, s.r, s.r);
+      }
+    }
+
+    // Sun, setting behind the hills
+    const sunUp = 1 - smoothstep(0, .38, p);
+    const narrow = w < 700;
+    const sunX = w * (narrow ? .7 : .8);
+    const sunY = horizon - h * .1 + p * h * .9;
+    if (sunUp > 0) {
+      const halo = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, h * .7);
+      halo.addColorStop(0, `rgba(255,190,110,${.45 * sunUp})`);
+      halo.addColorStop(.35, `rgba(240,120,100,${.18 * sunUp})`);
+      halo.addColorStop(1, 'rgba(240,120,100,0)');
+      ctx.fillStyle = halo;
+      ctx.fillRect(0, 0, w, h);
+      const r = narrow ? 34 : 52;
+      const disc = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, r);
+      disc.addColorStop(0, '#fff6d6');
+      disc.addColorStop(.7, '#ffd08a');
+      disc.addColorStop(1, `rgba(255,170,95,${.0})`);
+      ctx.fillStyle = disc;
+      ctx.beginPath();
+      ctx.arc(sunX, sunY, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Aurora over the Arctic
+    const auroraOn = smoothstep(.45, .85, p);
+    if (auroraOn > 0) drawAurora(t, auroraOn);
+
+    // Rio sinks out of view as the journey heads north
+    const rioDrop = smoothstep(0, .55, p) * h * .55;
+    if (rioDrop < h * .5) {
+      const scale = Math.max(w / 1440, (h * .32) / 320);
+      const ox = w - 1440 * scale;              // anchor right, so phones keep Sugarloaf in view
+      const oy = h - 320 * scale + rioDrop;
+      ctx.save();
+      ctx.translate(ox, oy);
+      ctx.scale(scale, scale);
+      const haze = mix(sky[3], hex('#2a1f45'), .55);
+      ctx.fillStyle = rgb(haze);
+      ctx.fill(RIO_FAR);
+      ctx.fillStyle = '#1a1430';
+      ctx.fill(RIO_NEAR);
+      // Guanabara Bay with the sun's reflection
+      const bay = ctx.createLinearGradient(0, BAY_Y, 0, 320);
+      bay.addColorStop(0, '#3a2a55');
+      bay.addColorStop(1, '#140f26');
+      ctx.fillStyle = bay;
+      ctx.fillRect(0, BAY_Y, 1440, 320 - BAY_Y);
+      if (sunUp > 0) {
+        const sx = (sunX - ox) / scale;
+        for (let i = 0; i < 12; i++) {
+          const y = BAY_Y + 3 + i * 3;
+          const half = (14 + i * 6) * (.45 + .55 * noise(i * 3.1 + t * 1.4));
+          ctx.fillStyle = `rgba(255,190,120,${(.55 - i * .04) * sunUp})`;
+          ctx.fillRect(sx - half, y, half * 2, 1.2);
+        }
+      }
+      ctx.restore();
+    }
+
+    // Arctic ridges rise from below
+    const rise = (1 - smoothstep(.35, .85, p)) * h * .6;
+    if (rise < h * .55) {
+      ridges.forEach((r, i) => {
+        const top = (r.base - r.amp) * h + rise;
+        const fill = ctx.createLinearGradient(0, top, 0, h + rise);
+        fill.addColorStop(0, rgb(r.top));
+        fill.addColorStop(.45, rgb(r.bottom));
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(r.pts[0][0], h);
+        for (const [x, y] of r.pts) ctx.lineTo(x, y + rise);
+        ctx.lineTo(w + 10, h);
+        ctx.closePath();
+        ctx.fill();
+        // Low mist between the ridges
+        if (i < ridges.length - 1) {
+          const mistY = r.base * h + rise;
+          const mist = ctx.createLinearGradient(0, mistY - h * .06, 0, mistY + h * .02);
+          mist.addColorStop(0, 'rgba(120,170,175,0)');
+          mist.addColorStop(1, 'rgba(120,170,175,.07)');
+          ctx.fillStyle = mist;
+          ctx.fillRect(0, mistY - h * .06, w, h * .08);
+        }
+      });
+    }
+
+    // Snow at three depths: near flakes are bigger and faster
     for (const f of flakes) {
       if (!reducedMotion) {
         f.y += f.v;
         f.drift += .01;
-        f.x += Math.sin(f.drift) * .3;
+        f.x += Math.sin(f.drift) * (.2 + f.depth * .4);
         if (f.y > h + 4) { f.y = -4; f.x = Math.random() * w; }
       }
-      const alpha = smoothstep(f.from, f.from + .1, progress) * .8;
-      if (alpha <= 0) continue;
-      ctx.fillStyle = `rgba(236, 230, 217, ${alpha})`;
+      const a = smoothstep(f.from, f.from + .1, p) * lerp(.35, .9, f.depth);
+      if (a <= 0) continue;
+      ctx.fillStyle = `rgba(236,232,224,${a})`;
       ctx.beginPath();
       ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
       ctx.fill();
     }
-    if (!reducedMotion) requestAnimationFrame(draw);
+
+    // Soft vignette keeps the edges quiet
+    const v = ctx.createRadialGradient(w / 2, h * .45, Math.min(w, h) * .35, w / 2, h * .45, Math.max(w, h) * .8);
+    v.addColorStop(0, 'rgba(0,0,0,0)');
+    v.addColorStop(1, 'rgba(0,0,0,.35)');
+    ctx.fillStyle = v;
+    ctx.fillRect(0, 0, w, h);
+
+    if (!reducedMotion) requestAnimationFrame(frame);
   }
 
   resize();
-  // Phones fire resize when the address bar hides; only reset the snow on a width change.
-  addEventListener('resize', () => {
-    if (canvas.clientWidth === w) return;
-    resize();
-    if (reducedMotion) draw();
-  });
-  if (reducedMotion) addEventListener('scroll', () => requestAnimationFrame(draw), { passive: true });
-  draw();
+  addEventListener('resize', () => { resize(); if (reducedMotion) frame(0); });
+  if (reducedMotion) addEventListener('scroll', () => requestAnimationFrame(frame), { passive: true });
+  requestAnimationFrame(frame);
 })();

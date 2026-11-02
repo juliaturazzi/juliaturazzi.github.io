@@ -21,32 +21,9 @@
 </head>
 <body>
 
-<!-- Background: a journey from a Rio sunset (top of the page) to the Arctic night (bottom).
-     main.js sets --p on <html> from 0 to 1 as the page scrolls. -->
-<div class="sky" aria-hidden="true">
-  <div class="layer rio">
-    <div class="sun"></div>
-    <svg class="skyline" viewBox="0 0 1440 320" preserveAspectRatio="xMidYMax slice">
-      <!-- Corcovado with Christ the Redeemer, Morro da Urca and Sugarloaf, over the bay -->
-      <path d="M0 262 C110 255 210 205 290 130 C312 98 330 74 345 72 C360 74 372 96 392 128 C440 200 530 240 640 252 C760 262 840 246 900 218 C935 182 985 172 1025 206 C1048 160 1078 94 1130 86 C1182 82 1222 150 1242 228 C1290 254 1365 262 1440 262 L1440 320 L0 320 Z"/>
-      <rect x="343" y="52" width="4" height="22"/>
-      <rect x="333" y="58" width="24" height="3"/>
-      <rect class="bay" x="0" y="282" width="1440" height="38"/>
-    </svg>
-  </div>
-
-  <div class="layer arctic">
-    <div class="aurora a1"></div>
-    <div class="aurora a2"></div>
-    <div class="aurora a3"></div>
-    <svg class="mountains" viewBox="0 0 1440 320" preserveAspectRatio="none">
-      <path class="far" d="M0 240 L120 170 L210 210 L330 120 L450 200 L560 150 L690 220 L820 110 L940 190 L1060 140 L1190 210 L1310 150 L1440 200 L1440 320 L0 320 Z"/>
-      <path class="near" d="M0 280 L90 240 L200 270 L310 220 L430 265 L540 235 L660 275 L780 230 L900 270 L1020 240 L1150 280 L1270 245 L1440 270 L1440 320 L0 320 Z"/>
-    </svg>
-  </div>
-
-  <canvas id="snow"></canvas>
-</div>
+<!-- Background: one canvas painted by main.js. Rio at sunset at the top of the page,
+     the Arctic night at the bottom; the scroll position moves between them. -->
+<div class="sky" aria-hidden="true"><canvas id="scene"></canvas></div>
 
 <!-- Journey tracker: follows the scroll from Rio to the Polar start in Signaldalen -->
 <aside class="journey" aria-label="From Rio de Janeiro to Signaldalen"

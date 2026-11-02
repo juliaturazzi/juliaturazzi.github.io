@@ -253,3 +253,5 @@ footer {
 @media (prefers-reduced-motion: reduce) {
   .aurora { animation: none; }
 }
+
+.photo-dl { margin-top: 8px; }

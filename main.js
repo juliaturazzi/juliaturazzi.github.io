@@ -161,10 +161,10 @@ const smoothstep = (a, b, x) => {
     gctx.globalCompositeOperation = 'lighter';
     // Two translucent ribbons high in the sky (a faint one behind, the main one in front),
     // each a curtain of fine rays that fades out at both ends, inside a wide soft glow.
-    const dim = w < 700 ? .6 : 1;                    // phones: text spans the full width
+    const dim = w < 700 ? .8 : 1;                    // phones: text spans the full width
     const RIBBONS = [
-      { top: .07, slope: .12, tall: .26, alpha: .22, seed: 70, from: .0,  to: .85 },
-      { top: .12, slope: .16, tall: .18, alpha: .55, seed: 0,  from: .12, to: 1 },
+      { top: .07, slope: .12, tall: .32, alpha: .42, seed: 70, from: .0,  to: .85 },
+      { top: .12, slope: .16, tall: .24, alpha: 1,   seed: 0,  from: .12, to: 1 },
     ];
     for (const r of RIBBONS) {
       for (let x = 0; x < gw; x++) {
@@ -178,9 +178,9 @@ const smoothstep = (a, b, x) => {
         const ray1 = noise(x * .35 + t * .4 + r.seed);
         const rays = .7 + .3 * ray1 * ray1 + .25 * Math.pow(noise(x * .08 - t * .15 + r.seed), 4);
         const a = strength * dim * ends * r.alpha;
-        gctx.globalAlpha = a * .25;                  // wide glow
+        gctx.globalAlpha = Math.min(1, a * .25);     // wide glow
         gctx.drawImage(ray, x, base - height * 1.8, 1.2, height * 2.3);
-        gctx.globalAlpha = a * rays;                 // the curtain itself
+        gctx.globalAlpha = Math.min(1, a * rays);    // the curtain itself (values over 1 are ignored by canvas)
         gctx.drawImage(ray, x, base - height, 1.2, height * 1.05);
       }
     }

@@ -194,7 +194,7 @@ h1 {
 
 /* ---------- Video ---------- */
 
-video {
+#film {
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -235,7 +235,6 @@ video {
   stroke-linecap: round;
   stroke-linejoin: round;
 }
-.btn .size { font-weight: 400; opacity: .7; }
 
 .btn.ghost {
   background: rgba(11, 20, 22, .25);

@@ -70,16 +70,6 @@ const smoothstep = (a, b, x) => {
   addEventListener('resize', update);
 })();
 
-// Show the video's file size next to the download button.
-(function size() {
-  const link = document.querySelector('a[download][href$=".mp4"]');
-  fetch(link.href, { method: 'HEAD' })
-    .then(r => +r.headers.get('content-length'))
-    .then(bytes => {
-      if (bytes) document.getElementById('size').textContent = `· ${Math.round(bytes / 1e6) || '<1'} MB`;
-    })
-    .catch(() => {});
-})();
 
 // Background scene, painted on one canvas every frame.
 // Top of the page: sunset over Guanabara Bay. Bottom: Arctic night with aurora and snow.
@@ -420,9 +410,19 @@ const smoothstep = (a, b, x) => {
     running = true;
     requestAnimationFrame(frame);
   };
-  film.addEventListener('play', still);
-  film.addEventListener('pause', resume);
-  film.addEventListener('ended', resume);
+  // The YouTube embed reports its state by postMessage once we say we're listening
+  // (enablejsapi=1 in its URL). State 1 is playing; anything else lets the scene move.
+  const listen = () => film.contentWindow.postMessage(JSON.stringify({ event: 'listening', id: 'film' }), '*');
+  listen();   // in case the embed finished loading before this script ran
+  film.addEventListener('load', listen);
+  addEventListener('message', (e) => {
+    if (e.source !== film.contentWindow) return;
+    let data;
+    try { data = JSON.parse(e.data); } catch { return; }
+    const state = data.event === 'onStateChange' ? data.info : data.info?.playerState;
+    if (state === undefined) return;
+    if (state === 1) still(); else resume();
+  });
 
   resize();
   // When the scene is still, scrolling and resizing redraw a single frame.
